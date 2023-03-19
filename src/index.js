@@ -11,6 +11,8 @@
  let n = 12;
 
 
+ fetchData();
+
 // 读取 csv 数据
 async function fetchData() {
   // autoType 能够把日期转换为了JavaScript的Date对象
@@ -28,11 +30,18 @@ async function fetchData() {
     }
   }
 
+  document.querySelector('#replay').addEventListener('click',() => {
+    console.log('replay');
+    d3.select('svg').remove()   // 清除上一个svg
+    // draw(svg,bars,axis,labels,dateMap)
+    renderBarChart(dateMap)
+  })
+
   renderBarChart(dateMap)
 }
 
 // 渲染svg,容器
-function renderBarChart(dateMap) {
+async function renderBarChart(dateMap) {
 
   // 防止当数据值很大的时候，画出的条形bar可能就会超出整个设定的画布宽度
   x = d3.scaleLinear().domain([0,max]).range([margin.left, width-margin.right])
@@ -60,21 +69,10 @@ function renderBarChart(dateMap) {
   //bar标签容器， text-anchor属性设置文本与所给点的对齐方式 
   const labels = svg.append('g').style("font", "bold 12px sans-serif").attr("text-anchor", "end")   
   const ticker = svg.append('text').style("font", `bold ${y.bandwidth()}px sans-serif`)
-
-  document.querySelector('#replay').addEventListener('click',() => {
-    console.log('replay');
-    // d3.select('svg').remove()   // 清除上一个svg
-    draw(svg,bars,axis,labels,dateMap)
-  })
   
-  draw(svg,bars,axis,labels,ticker,dateMap)
-}
-
-
-// 绘制chart
-async function draw(svg,bars,axis,labels,ticker,data) {
-    for(let [date,keyframe] of data) {
-      // 生成一段动画配置，持续250ms
+  // draw(svg,bars,axis,labels,ticker,dateMap)
+  for(let [date,keyframe] of dateMap) {
+    // 生成一段动画配置，持续250ms
     const transition = svg.transition()   
       .duration(250)
       .ease(d3.easeLinear);
@@ -87,10 +85,9 @@ async function draw(svg,bars,axis,labels,ticker,data) {
       drawLabels(labels,keyframe,transition)
       drawTicker(ticker,date,transition)
       
-      await transition.end().catch(error => {});
+      await transition.end().catch(error => {});  // 等待上一个过渡结束
   }
 }
-
 
 
 
@@ -157,4 +154,3 @@ function drawTicker(ticker,date,t) {
 // 颜色映射，使用预设色板。
 const color = d3.scaleOrdinal(d3.schemeTableau10)
 
-fetchData();
