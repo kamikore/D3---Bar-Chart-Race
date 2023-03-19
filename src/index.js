@@ -11,7 +11,6 @@
  let n = 12;
 
 
-
 // 读取 csv 数据
 async function fetchData() {
   // autoType 能够把日期转换为了JavaScript的Date对象
@@ -29,12 +28,11 @@ async function fetchData() {
     }
   }
 
-  // 渲染svg,容器
   renderBarChart(dateMap)
 }
 
-
-function renderBarChart(data) {
+// 渲染svg,容器
+function renderBarChart(dateMap) {
 
   // 防止当数据值很大的时候，画出的条形bar可能就会超出整个设定的画布宽度
   x = d3.scaleLinear().domain([0,max]).range([margin.left, width-margin.right])
@@ -43,8 +41,9 @@ function renderBarChart(data) {
   y = d3.scaleBand()
   .domain(d3.range(n + 1))
   .range([margin.top, height])
-  .padding(0.2)     // 影响 bandwidth 的值
+  .padding(0.2)     // band 间距
 
+  // bandwidth() 获取每个band的宽度
   console.log("bandwidth",y.bandwidth());
 
   // 创建SVG，此时svg标签是空的 (如果使用append 是添加)
@@ -60,31 +59,34 @@ function renderBarChart(data) {
   const axis = svg.append('g').attr('transform',`translate(0,${margin.top})`)   
   //bar标签容器， text-anchor属性设置文本与所给点的对齐方式 
   const labels = svg.append('g').style("font", "bold 12px sans-serif").attr("text-anchor", "end")   
-
+  const ticker = svg.append('text').style("font", `bold ${y.bandwidth()}px sans-serif`)
 
   document.querySelector('#replay').addEventListener('click',() => {
     console.log('replay');
     // d3.select('svg').remove()   // 清除上一个svg
-    draw(svg,bars,axis,labels,data)
+    draw(svg,bars,axis,labels,dateMap)
   })
   
-  draw(svg,bars,axis,labels,data)
+  draw(svg,bars,axis,labels,ticker,dateMap)
 }
 
-async function draw(svg,bars,axis,labels,data) {
+
+// 绘制chart
+async function draw(svg,bars,axis,labels,ticker,data) {
     for(let [date,keyframe] of data) {
-      // // 生成一段动画配置，持续250ms
+      // 生成一段动画配置，持续250ms
     const transition = svg.transition()   
       .duration(250)
       .ease(d3.easeLinear);
 
-      // 重新进行映射
-      x.domain([0, d3.max(keyframe, row => row.value)]);
+      x.domain([0, d3.max(keyframe, row => row.value)]);  // 重新进行映射
 
+      keyframe.sort((a,b) => d3.descending(a.value, b.value))   // 排序
       drawBars(bars,keyframe,transition)
       drawAxis(axis,keyframe,transition)
       drawLabels(labels,keyframe,transition)
-    
+      drawTicker(ticker,date,transition)
+      
       await transition.end().catch(error => {});
   }
 }
@@ -141,6 +143,14 @@ function drawLabels(labels,data,t) {
         .remove(), 
     )
     
+}
+
+// 绘制年份
+function drawTicker(ticker,date,t) {
+  ticker.attr("text-anchor", "end")
+    .attr("x", width-y.bandwidth()*2)
+    .attr("y", height-y.bandwidth()*2)
+    .text(date)
 }
 
 
